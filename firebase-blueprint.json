@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Reflection": {
+      "title": "Reflection",
+      "description": "A cognitive diagnostic calibration log entry.",
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "integer",
+          "description": "The epoch timestamp when this entry was created"
+        },
+        "cognitiveState": {
+          "type": "object",
+          "description": "The raw tuned cognitive metric slider percentages"
+        },
+        "journal": {
+          "type": "string",
+          "description": "Optional notes or mental static logs"
+        },
+        "promptCategory": {
+          "type": "string",
+          "description": "Vibe prompt subroutine identifier (e.g. AM_PULSE)"
+        },
+        "dominantVector": {
+          "type": "string",
+          "description": "The computed diagnostic vector classification"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Automated categorizations"
+        }
+      },
+      "required": [
+        "timestamp",
+        "cognitiveState",
+        "promptCategory",
+        "dominantVector"
+      ]
+    }
+  },
+  "firestore": {
+    "reflections": {
+      "schema": "Reflection",
+      "description": "User cognitive calibration reflections and journal records"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "HUDX",
+  "description": "A mobile-first responsive heads-up display dashboard and daily cognitive reflection engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
