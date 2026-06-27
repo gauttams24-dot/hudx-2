@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HUD-X Prototype</title>
+    <style>
+        /* Pure OLED Backdrop */
+        body {
+            background-color: #000000;
+            color: #00FF00;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Container for the HUD elements */
+        #hud-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 90vw;
+            max-width: 800px;
+            height: 75vh;
+            padding: 40px;
+            box-sizing: border-box;
+            border: 1px solid rgba(0, 255, 0, 0.1);
+            border-radius: 12px;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
+
+        /* Flipped state for windshield mirroring */
+        .mirrored {
+            transform: scaleX(-1);
+        }
+
+        /* Massive Digital Speedometer */
+        .speed-wrapper {
+            text-align: center;
+        }
+        .speed {
+            font-size: 9rem;
+            font-weight: bold;
+            line-height: 1;
+            text-shadow: 0 0 25px rgba(0, 255, 0, 0.8);
+        }
+        .unit {
+            font-size: 2.5rem;
+            opacity: 0.9;
+            text-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+        }
+
+        /* Navigation Vector */
+        .navigation {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .nav-text {
+            font-size: 1.8rem;
+            font-weight: bold;
+            letter-spacing: 3px;
+            text-shadow: 0 0 15px rgba(0, 255, 0, 0.7);
+        }
+        .nav-icon {
+            filter: drop-shadow(0 0 15px #00FF00);
+        }
+
+        /* Code & Firebase Telemetry Panel */
+        .telemetry-logs {
+            width: 100%;
+            background: rgba(0, 255, 0, 0.03);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            padding: 20px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            border-radius: 6px;
+        }
+        .log-line {
+            margin: 8px 0;
+            opacity: 0.85;
+        }
+        .log-line::before {
+            content: "> ";
+            font-weight: bold;
+            color: #00FFFF; /* Cyan touch for logs */
+        }
+
+        /* Control Panel (Kept outside mirror container to remain readable) */
+        .control-panel {
+            margin-top: 30px;
+            display: flex;
+            gap: 40px;
+            background: #0a0a0a;
+            padding: 20px 40px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            z-index: 10;
+        }
+
+        button {
+            background-color: transparent;
+            color: #00FFFF;
+            border: 2px solid #00FFFF;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background-color: #00FFFF;
+            color: #000000;
+            box-shadow: 0 0 15px #00FFFF;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .slider-label {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            color: #00FFFF;
+            letter-spacing: 1px;
+        }
+        input[type="range"] {
+            accent-color: #00FFFF;
+            cursor: pointer;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="hud-container">
+        
+        <div class="navigation">
+            <svg class="nav-icon" width="140" height="140" viewBox="0 0 24 24" fill="none" stroke="#00FF00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 10 4 15 9 20"></polyline>
+                <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+            </svg>
+            <div class="nav-text">LEFT TURN IN 150m</div>
+        </div>
+
+        <div class="speed-wrapper">
+            <div class="speed" id="speed-display">72</div>
+            <div class="unit">km/h</div>
+        </div>
+
+        <div class="telemetry-logs">
+            <div class="log-line">Firestore DB: Connected (Streaming telemetry via BLE OBD-II)</div>
+            <div class="log-line">Pipeline: Mapbox SDK JSON -> Vector Extraction Layer Active</div>
+            <div class="log-line">Rendering Engine: Skia/Impeller 2D Canvas Matrix Applied</div>
+        </div>
+
+    </div>
+
+    <div class="control-panel">
+        <button onclick="toggleMirror()">Toggle Windshield HUD Mirroring</button>
+        
+        <div class="slider-container">
+            <div class="slider-label">External Ambient Light (Solar Time)</div>
+            <input type="range" id="light-slider" min="30" max="100" value="100" oninput="adjustBrightness(this.value)">
+        </div>
+    </div>
+
+    <script>
+        // 1. Update Speedometer slightly every second
+        const speedDisplay = document.getElementById('speed-display');
+        
+        setInterval(() => {
+            // Fluctuate speed randomly between 71 and 74 to simulate real driving
+            const fluctuation = Math.floor(Math.random() * 4) - 1; 
+            const currentSpeed = 72 + fluctuation;
+            speedDisplay.innerText = currentSpeed;
+        }, 1000);
+
+        // 2. Toggle Windshield HUD Mirroring
+        function toggleMirror() {
+            const hudContainer = document.getElementById('hud-container');
+            hudContainer.classList.toggle('mirrored');
+        }
+
+        // 3. Ambient Light Auto-Dimming Simulator
+        function adjustBrightness(value) {
+            const hudContainer = document.getElementById('hud-container');
+            // Convert percentage to decimal opacity (30% to 100% -> 0.3 to 1.0)
+            hudContainer.style.opacity = value / 100;
+        }
+    </script>
+</body>
+</html>
